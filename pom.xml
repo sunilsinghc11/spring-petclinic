@@ -436,4 +436,17 @@
     </profile>
   </profiles>
 
+  <distributionManagement>
+    <repository>
+        <id>central</id>
+        <name>a0puoytrliyfk-artifactory-primary-0-releases</name>
+        <url>https://anycompany.jfrog.io/artifactory/petclinic-libs-release</url>
+    </repository>
+    <snapshotRepository>
+        <id>snapshots</id>
+        <name>a0puoytrliyfk-artifactory-primary-0-snapshots</name>
+        <url>https://anycompany.jfrog.io/artifactory/petclinic-libs-snapshot</url>
+    </snapshotRepository>
+</distributionManagement>
+
 </project>
