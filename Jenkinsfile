@@ -16,9 +16,17 @@ pipeline {
               
             }
         }
+
         stage('Build Image'){
             steps{
-               sh 'docker build -t sunilsc/petclinic:1.0.0 .'
+                script {
+                        withCredentials([string(credentialsId: 'docker-pass', variable: 'sunil-docker-pass')]) {
+                            // some block
+                          sh  'docker login -u sunilsc -p PetClinic11!'
+                          }  
+                 sh 'docker build -t sunilsc/petclinic:1.0.0 .'
+                }
+               
             }
         }
          stage('Deploy Image'){
