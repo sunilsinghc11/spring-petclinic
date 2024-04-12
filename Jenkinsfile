@@ -24,7 +24,7 @@ pipeline {
                         withCredentials([string(credentialsId: 'dockerhubpwd', variable: 'dockerhubpwd')]) {
                              //withCredentials([string(credentialsId: 'docker-pass', variable: 'sunil-docker-pass')]) {
                             
-                          sh  'docker login -u sunilsc -p PetClinic11!'
+                          sh  'docker login -u sunilsc -p ${dockerhubpwd}'
                           }  
                  sh 'docker build -t sunilsc/petclinic:1.0.0 .'
                 }
@@ -35,7 +35,7 @@ pipeline {
             steps{
                 script {
                         withCredentials([string(credentialsId: 'dockerhubpwd', variable: 'dockerhubpwd')]) {
-                        sh  'docker login -u sunilsc -p PetClinic11!'
+                        sh  'docker login -u sunilsc -p ${dockerhubpwd}'
                           }  
                  sh 'docker push sunilsc/petclinic:1.0.0'
                 }
