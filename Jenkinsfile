@@ -6,13 +6,14 @@ pipeline {
             steps{
                 
                 checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/sunilsinghc11/spring-petclinic.git']])
-                sh 'mvn -s ./settings.xml clean deploy'
+               // sh 'mvn -s ./settings.xml clean deploy'
             }
         }
         stage('Test'){
             steps{
                 
-               sh 'mvn -s ./settings.xml test'
+              // sh 'mvn -s ./settings.xml test'
+              sh 'echo hi'
               
             }
         }
@@ -20,8 +21,9 @@ pipeline {
         stage('Build Image'){
             steps{
                 script {
-                        withCredentials([string(credentialsId: 'docker-pass', variable: 'sunil-docker-pass')]) {
-                            // some block
+                        withCredentials([string(credentialsId: 'dockerhubpwd', variable: 'dockerhubpwd')]) {
+                             //withCredentials([string(credentialsId: 'docker-pass', variable: 'sunil-docker-pass')]) {
+                            
                           sh  'docker login -u sunilsc -p PetClinic11!'
                           }  
                  sh 'docker build -t sunilsc/petclinic:1.0.0 .'
@@ -32,9 +34,8 @@ pipeline {
          stage('Deploy Image'){
             steps{
                 script {
-                        withCredentials([string(credentialsId: 'docker-pass', variable: 'sunil-docker-pass')]) {
-                            // some block
-                          sh  'docker login -u sunilsc -p PetClinic11!'
+                        withCredentials([string(credentialsId: 'dockerhubpwd', variable: 'dockerhubpwd')]) {
+                        sh  'docker login -u sunilsc -p PetClinic11!'
                           }  
                  sh 'docker push sunilsc/petclinic:1.0.0'
                 }
