@@ -13,13 +13,13 @@ Note: This process with not deploy to the envionrmnet platform.
 ### JAR
 #### Package DevOps steps
 - [pipeline](./Jenkinsfile.mvn.package.jfrog-cli)
-- [![Walk through demo](https://youtu.be/cHC79tWz8d4)
+- ![Walk through demo](https://youtu.be/cHC79tWz8d4)
 #### SBOM
 - [pipeline](./Jenkinsfile.mvn.buildInfo.jfrog-cli)
-- [![Walk through demo]()
+- ![Walk through demo]()
 #### Release Bundle v2
 - [pipeline](./Jenkinsfile.mvn.RBv2.jfrog-cli)
-- [![Walk through demo]()
+- ![Walk through demo]()
 
 
 ## LAST UMCOMMIT
