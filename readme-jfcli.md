@@ -13,12 +13,10 @@ Note: This process with not deploy to the envionrmnet platform.
 ### JAR
 #### Package DevOps steps
 - [pipeline](./Jenkinsfile.mvn.package.jfrog-cli)
-- ![Walk through demo]()
 - [![Walk through demo](https://img.youtube.com/vi/cHC79tWz8d4/0.jpg)](https://www.youtube.com/watch?v=cHC79tWz8d4)
 #### SBOM
 - [pipeline](./Jenkinsfile.mvn.buildInfo.jfrog-cli)
 - [![Walk through demo](https://img.youtube.com/vi/Sm4vWhPsvAY/0.jpg)](https://www.youtube.com/watch?v=Sm4vWhPsvAY)
-- https://youtu.be/
 #### Release Bundle v2 - Create
 - [pipeline](./Jenkinsfile.mvn.RBv2.jfrog-cli)
 - [![Walk through demo](https://img.youtube.com/vi/?/0.jpg)](https://www.youtube.com/watch?v=?)
