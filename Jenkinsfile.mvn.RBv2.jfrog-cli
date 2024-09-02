@@ -115,7 +115,7 @@ node {
                 sh """ #!/bin/bash
                     export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
 
-                    jf rbc ${projectName} ${env.BUILD_ID} --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --spec="${JSON_SPEC_FNAME}" --spec-vars="build_name=${projectName};build_id=${env.BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};" --server-id="${JFROG_NAME}" --sync=true
+                    jf rbc --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --spec="${JSON_SPEC_FNAME}" --spec-vars="build_name=${projectName};build_id=${env.BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};state=new" --server-id="${JFROG_NAME}" ${projectName} ${env.BUILD_ID}
                 """
              } // withCredentials: JF_ACCESS_TOKEN
         } // stage: RBv2:NEW

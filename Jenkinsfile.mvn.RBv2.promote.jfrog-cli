@@ -4,7 +4,7 @@ node {
     
     // https://github.com/krishnamanchikalapudi/spring-petclinic
     // https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli
-    projectName="spring-petclinic-rbv2" 
+    projectName="spring-petclinic-rbv2-promote" 
     JF_CLI_LOG_LEVEL='DEBUG'
     PACKAGE_CATEGORY='WebApp'
     JSON_SPEC_FNAME="${WORKSPACE}/rb2-spec-${env.BUILD_ID}.json"
@@ -95,6 +95,7 @@ node {
         // https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-artifactory/release-lifecycle-management
         stage('spec') {
             // { "files": [ {"build": "spring-petclinic-rbv2/cmd.2024-08-30-17-01", "includeDeps": "false" } ] }
+            // { "files": [ {"build": "build_name/build_number"} ] }
             script {
                 def rb2info=  [
                 'build' : "${projectName}/${env.BUILD_ID}",
@@ -115,9 +116,18 @@ node {
                 sh """ #!/bin/bash
                     export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
 
-                    jf rbc ${projectName} ${env.BUILD_ID} --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --spec="${JSON_SPEC_FNAME}" --spec-vars="build_name=${projectName};build_id=${env.BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};" --server-id="${JFROG_NAME}" --sync=true
+                    jf rbc --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --spec="${JSON_SPEC_FNAME}" --spec-vars="build_name=${projectName};build_id=${env.BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};state=new2dev" --server-id="${JFROG_NAME}" ${projectName} ${env.BUILD_ID}
                 """
              } // withCredentials: JF_ACCESS_TOKEN
         } // stage: RBv2:NEW
+        stage('RBv2:DEV') {
+            withCredentials([string(credentialsId: 'JF_ACCESS_TOKEN', variable: 'JF_ACCESS_TOKEN')]) {
+                // NOTE: 
+                sh """ #!/bin/bash
+                    export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+                    jf rbp --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --server-id="psazuse" ${projectName} ${env.BUILD_ID} DEV 
+                """
+             } // withCredentials: JF_ACCESS_TOKEN
+        } // stage: RBv2:DEV
     } // stage: RB v2
 } // node

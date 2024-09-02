@@ -46,21 +46,21 @@ jf rt bp ${BUILD_NAME} ${BUILD_ID} --detailed-summary=true
 # ref: https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-artifactory/release-lifecycle-management
 echo "\n\n**** RBv2: Create ****\n\n"
 echo " BUILD_NAME: $BUILD_NAME \n BUILD_ID: $BUILD_ID \n RT_PROJECT_REPO: $RT_PROJECT_REPO  \n RT_PROJECT_RB_SIGNING_KEY: $RT_PROJECT_RB_SIGNING_KEY  \n "
-
+  # create spec
 echo "{ \"files\": [ {\"build\": \"${BUILD_NAME}/${BUILD_ID}\", \"includeDeps\": \"false\" } ] }"  > rbv2-spec-${BUILD_ID}.json
-
 echo "\n" && cat rbv2-spec-${BUILD_ID}.json && echo "\n"
-
-# --server-id="psazuse" --access-token="${JF_ACCESS_TOKEN}" 
-jf rbc ${BUILD_NAME} ${BUILD_ID} --sync="true" --access-token="${JF_ACCESS_TOKEN=}" --url="${JF_RT_URL}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" --spec="rbv2-spec-${BUILD_ID}.json" --spec-vars="build_name=${BUILD_NAME};build_id=${BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};" --server-id="psazuse" --sync=true
-
+  # create RB to state=NEW
+jf rbc ${BUILD_NAME} ${BUILD_ID} --sync="true" --access-token="${JF_ACCESS_TOKEN=}" --url="${JF_RT_URL}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" --spec="rbv2-spec-${BUILD_ID}.json" --spec-vars="build_name=${BUILD_NAME};build_id=${BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};state=new" --server-id="psazuse" 
 
 ## RBv2: release bundle - DEV promote
-# jf rbp --sync=true --url="${JF_RT_URL}" --access-token="${JF_BEARER_TOKEN}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" ${BUILD_NAME} ${BUILD_ID} DEV
+jf rbp --sync="true" --access-token="${JF_ACCESS_TOKEN=}" --url="${JF_RT_URL}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" --server-id="psazuse" ${BUILD_NAME} ${BUILD_ID} DEV 
+
+## AQL: if state=NEW, do not promote to QA
+# jf rt curl -XGET /lifecycle/api/v2/release_bundle/records/${BUILD_NAME}/${BUILD_ID}
+#jf curl -X GET /lifecycle/api/v2/release_bundle/records/spring-petclinic-rbv2/cmd.2024-08-30-21-17
 
 ## RBv2: release bundle - QA promote
 # jf rbp --sync=true --url="${JF_RT_URL}" --access-token="${JF_BEARER_TOKEN}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" ${BUILD_NAME} ${BUILD_ID} QA
-
 
 
 echo "\n\n**** DONE ****\n\n"
