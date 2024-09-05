@@ -4,10 +4,11 @@ node {
     
     // https://github.com/krishnamanchikalapudi/spring-petclinic
     // https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli
-    projectName="spring-petclinic-rbv2" 
+    projectName="spring-petclinic-rbv2-pcondition" 
     JF_CLI_LOG_LEVEL='DEBUG'
     PACKAGE_CATEGORY='WebApp'
     JSON_SPEC_FNAME="${WORKSPACE}/rb2-spec-${env.BUILD_ID}.json"
+
     def BUILD_TS = sh(script: "date +%Y-%m-%d-%H-%M", returnStdout: true).trim()
 
     stage('PACKAGE') { 
@@ -95,6 +96,7 @@ node {
         // https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-artifactory/release-lifecycle-management
         stage('spec') {
             // { "files": [ {"build": "spring-petclinic-rbv2/cmd.2024-08-30-17-01", "includeDeps": "false" } ] }
+            // { "files": [ {"build": "build_name/build_number"} ] }
             script {
                 def rb2info=  [
                 'build' : "${projectName}/${env.BUILD_ID}",
@@ -115,9 +117,66 @@ node {
                 sh """ #!/bin/bash
                     export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
 
-                    jf rbc --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --spec="${JSON_SPEC_FNAME}" --spec-vars="build_name=${projectName};build_id=${env.BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};state=new" --server-id="${JFROG_NAME}" ${projectName} ${env.BUILD_ID} 
+                    jf rbc --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --spec="${JSON_SPEC_FNAME}" --spec-vars="build_name=${projectName};build_id=${env.BUILD_ID};PACKAGE_CATEGORY=${PACKAGE_CATEGORY};state=new2dev" --server-id="${JFROG_NAME}" ${projectName} ${env.BUILD_ID}
                 """
              } // withCredentials: JF_ACCESS_TOKEN
         } // stage: RBv2:NEW
+        stage('RBv2:DEV') {
+            withCredentials([string(credentialsId: 'JF_ACCESS_TOKEN', variable: 'JF_ACCESS_TOKEN')]) {
+                // NOTE: 
+                sh """ #!/bin/bash
+                    export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                    jf rbp --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --server-id="psazuse" ${projectName} ${env.BUILD_ID} DEV 
+                """
+             } // withCredentials: JF_ACCESS_TOKEN
+        } // stage: RBv2:DEV
+        stage('Check State') {
+            stage('Info') {
+                parallel buildInfo: {
+                    sh """ #!/bin/bash
+                        export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                        jf rt curl /api/build/${projectName}/${env.BUILD_ID}?async=false > bi_packcat_${env.BUILD_ID}.json
+
+                        export BUILDINFO_PACKAGE_CATEGORY=`cat bi_packcat_${env.BUILD_ID}.json | jq -r '.buildInfo.properties."buildInfo.env.PACKAGE_CATEGORY"'`
+                    
+                        echo " BuildInfo Package Category =  $BUILDINFO_PACKAGE_CATEGORY"
+                    """
+                }, rbv2info: {
+                    withCredentials([string(credentialsId: 'JF_ACCESS_TOKEN', variable: 'JF_ACCESS_TOKEN')]) {
+                        sh """ #!/bin/bash
+                            export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                            curl -v -G '${JF_RT_URL}/lifecycle/api/v2/promotion/records/${projectName}/${env.BUILD_ID}?async=false' -H 'Content-Type: application/json' -H 'Authorization: Bearer ${JF_ACCESS_TOKEN}' > RB2_STATUS.json
+
+                            export RB2_STATUS=$(echo RB2_STATUS.json | jq -r '.promotions[0].environment')
+
+                            echo " Release Bundle state =  $RB2_STATUS "
+                        """
+                    } // withCredentials: JF_ACCESS_TOKEN
+                } // parallel
+            } // stage: Info
+            stage ('Condition: PROD or QA') {
+                script {
+                    echo " BuildInfo Package Category =  $BUILDINFO_PACKAGE_CATEGORY"
+
+                    echo " Release Bundle state =  $RB2_STATUS "
+
+                    if ("WEBAPP" == env.BUILDINFO_PACKAGE_CATEGORY && "DEV" == env.RB2_STATUS) {   
+                        echo " Condition TRUE"
+                    } else {
+                        echo " Condition FALSE"
+                    } // if
+                } // script
+            } // stage: Condition: PROD or QA'
+        } // stage: Check state
     } // stage: RB v2
+    stage('cleanup') {
+        sh """ #!/bin/bash
+            # rm -rf ${JSON_SPEC_FNAME}
+            # rm -rf bi_packcat_${env.BUILD_ID}.json
+            # rm -rf RB2_STATUS_${env.BUILD_ID}.json
+        """
+    }
 } // node
