@@ -4,10 +4,11 @@ node {
     
     // https://github.com/krishnamanchikalapudi/spring-petclinic
     // https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli
-    projectName="spring-petclinic-rbv2-promote" 
+    projectName="spring-petclinic-rbv2-pcondition" 
     JF_CLI_LOG_LEVEL='DEBUG'
     PACKAGE_CATEGORY='WebApp'
     JSON_SPEC_FNAME="${WORKSPACE}/rb2-spec-${env.BUILD_ID}.json"
+
     def BUILD_TS = sh(script: "date +%Y-%m-%d-%H-%M", returnStdout: true).trim()
 
     stage('PACKAGE') { 
@@ -125,9 +126,64 @@ node {
                 // NOTE: 
                 sh """ #!/bin/bash
                     export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
                     jf rbp --sync="true" --access-token="${JF_ACCESS_TOKEN}" --url="${JF_RT_URL}" --signing-key="krishnam" --server-id="psazuse" ${projectName} ${env.BUILD_ID} DEV 
                 """
              } // withCredentials: JF_ACCESS_TOKEN
         } // stage: RBv2:DEV
+        stage('Check State') {
+            stage('Info') {
+                parallel buildInfo: {
+                    sh """ #!/bin/bash
+                        export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                        jf rt curl /api/build/${projectName}/${env.BUILD_ID}?async=false > bi_packcat_${env.BUILD_ID}.json
+
+                        export BUILDINFO_PACKAGE_CATEGORY=`cat bi_packcat_${env.BUILD_ID}.json | jq -r '.buildInfo.properties."buildInfo.env.PACKAGE_CATEGORY"'`
+                    
+                        echo " BuildInfo Package Category =  $BUILDINFO_PACKAGE_CATEGORY"
+                    """
+                }, rbv2info: {
+                    withCredentials([string(credentialsId: 'JF_ACCESS_TOKEN', variable: 'JF_ACCESS_TOKEN')]) {
+                        sh """ #!/bin/bash
+                            export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                            # export RB2_STATUS_RESP=$(curl -v -G ${JF_RT_URL}/lifecycle/api/v2/promotion/records/${BUILD_NAME}/${BUILD_ID}?async=false -H 'Content-Type:  application/json' -H "Authorization: Bearer ${JF_ACCESS_TOKEN}")
+
+                            curl -v -G ${JF_RT_URL}/lifecycle/api/v2/promotion/records/${BUILD_NAME}/${BUILD_ID}?async=false -H 'Content-Type:  application/json' -H "Authorization: Bearer ${JF_ACCESS_TOKEN}" > RB2_STATUS.json
+
+                            export RB2_STATUS=$(echo RB2_STATUS.json | jq -r '.promotions[0].environment')
+
+                            echo " Release Bundle state =  $RB2_STATUS "
+                        """
+                    } // withCredentials: JF_ACCESS_TOKEN
+                } // parallel
+            } // stage: Info
+            stage ('Condition: PROD or QA') {
+                withCredentials([string(credentialsId: 'JF_ACCESS_TOKEN', variable: 'JF_ACCESS_TOKEN')]) {
+                    script {
+                        echo " BuildInfo Package Category =  $BUILDINFO_PACKAGE_CATEGORY"
+                        echo " Release Bundle state =  $RB2_STATUS "
+
+                        if ("WEBAPP" == env.BUILDINFO_PACKAGE_CATEGORY && "DEV" == env.RB2_STATUS) {   
+                            echo " Condition TRUE"
+                            echo "\n\n**** RBv2: Promoted to NEW --> DEV --> PROD ****\n\n"
+                            jf rbp --sync="true" --access-token="${JF_ACCESS_TOKEN=}" --url="${JF_RT_URL}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" --server-id="psazuse" ${projectName} ${env.BUILD_ID} PROD
+                        } else {
+                            echo " Condition FALSE"
+                            echo "\n\n**** RBv2: Promoted to NEW --> DEV --> QA ****\n\n"
+                            jf rbp --sync="true" --access-token="${JF_ACCESS_TOKEN=}" --url="${JF_RT_URL}" --signing-key="${RT_PROJECT_RB_SIGNING_KEY}" --server-id="psazuse" ${projectName} ${env.BUILD_ID} QA  
+                        } // if
+                    } // script
+                }
+            } // stage: Condition: PROD or QA'
+        } // stage: Check state
     } // stage: RB v2
+    stage('cleanup') {
+        sh """ #!/bin/bash
+            # rm -rf ${JSON_SPEC_FNAME}
+            # rm -rf bi_packcat_${env.BUILD_ID}.json
+            # rm -rf RB2_STATUS_${env.BUILD_ID}.json
+        """
+    }
 } // node

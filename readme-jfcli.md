@@ -12,17 +12,17 @@ Note: This process with not deploy to the envionrmnet platform.
 ## Jenkins
 ### JAR
 #### Package DevOps steps
-- [pipeline file: Jenkinsfile.mvn.package.jfrog-cli](./Jenkinsfile.mvn.package.jfrog-cli)
+- [pipeline file: Jenkinsfile.mvn.jfrog-cli](./Jenkinsfile.mvn.jfrog-cli)
 - [![Walk through demo](https://img.youtube.com/vi/cHC79tWz8d4/0.jpg)](https://www.youtube.com/watch?v=cHC79tWz8d4)
 #### SBOM
-- [pipeline file: Jenkinsfile.mvn.buildInfo.jfrog-cli](./Jenkinsfile.mvn.buildInfo.jfrog-cli)
+- [pipeline file: Jenkinsfile.mvn.jfrog-cli](./Jenkinsfile.mvn.buildInfo.jfrog-cli)
 - [![Walk through demo](https://img.youtube.com/vi/Sm4vWhPsvAY/0.jpg)](https://www.youtube.com/watch?v=Sm4vWhPsvAY)
 #### Release Bundle v2 - Create
-- [pipeline file: Jenkinsfile.mvn.RBv2.jfrog-cli](./Jenkinsfile.mvn.RBv2.jfrog-cli)
-- [![Walk through demo](https://img.youtube.com/vi/?/0.jpg)](https://www.youtube.com/watch?v=?)
+- [pipeline file: Jenkinsfile.mvn.jfrog-cli](./Jenkinsfile.mvn.jfrog-cli)
+- [![Walk through demo](https://img.youtube.com/vi/zap2gfYA3Vs/0.jpg)](https://www.youtube.com/watch?v=zap2gfYA3Vs)
 #### Release Bundle v2 - Promote
-- [pipeline file: Jenkinsfile.mvn.RBv2.promote.jfrog-cli](./Jenkinsfile.mvn.RBv2.promote.jfrog-cli)
-- [![Walk through demo](https://img.youtube.com/vi/?/0.jpg)](https://www.youtube.com/watch?v=?)
+- [pipeline file: Jenkinsfile.mvn.jfrog-cli](./Jenkinsfile.mvn.jfrog-cli)
+- [![Walk through demo](https://img.youtube.com/vi/xXSdGRBPFjg/0.jpg)](https://www.youtube.com/watch?v=xXSdGRBPFjg)
 
 
 ## LAST UMCOMMIT

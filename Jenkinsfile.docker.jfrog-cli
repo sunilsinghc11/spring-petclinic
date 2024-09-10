@@ -1,0 +1,105 @@
+node {
+    JFROG_NAME="psazuse"
+    JF_RT_HOST="${JFROG_NAME}.jfrog.io"
+    JF_RT_URL="https://${JF_RT_HOST}"
+    
+    // https://github.com/krishnamanchikalapudi/spring-petclinic
+    // https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli
+    projectName="spring-petclinic" 
+    JF_CLI_LOG_LEVEL='DEBUG' 
+    PACKAGE_CATEGORY='WebApp'
+    JSON_SPEC_FNAME="${WORKSPACE}/rb2-spec-${env.BUILD_ID}.json"
+    def BUILD_TS = sh(script: "date +%Y-%m-%d-%H-%M", returnStdout: true).trim()
+
+    stage('PACKAGE') { 
+        stage('init') {
+            stage('jf.ver') {
+                sh """ #!/bin/bash
+                    jf -v
+                """ 
+            } // stage: jf.ver
+            stage('rt.config') {
+                // jenkins secrets: https://www.jenkins.io/doc/book/using/using-credentials/
+                // JFrog CLI config
+                withCredentials([usernamePassword(credentialsId: 'JFROG_ARTIFACTORY_CLI', passwordVariable: 'JFROG_RT_PWD', usernameVariable: 'JFROG_RT_USER')]) {
+                    sh """ #!/bin/bash
+                        jf config add ${JFROG_NAME} --artifactory-url=${JF_RT_URL}/artifactory --xray-url=${JF_RT_URL}/xray --user=${JFROG_RT_USER} --password=${JFROG_RT_PWD} --interactive=false --overwrite    
+                    """
+                } // withCredentials: JFROG_ARTIFACTORY
+            } // stage: rt.config
+            stage('rt.ping') {
+                sh """ #!/bin/bash
+                    export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+                    jf rt ping
+                """
+            } // stage: rt.ping
+            stage('config.show') {
+                sh """ #!/bin/bash
+                    export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+                    echo "\n"
+                    jf config show
+                """
+            } // stage: config.show
+        } // stage: init
+        stage('clone') {
+            git branch: 'main', url: 'https://github.com/krishnamanchikalapudi/spring-petclinic.git'
+        } // stage: clone
+        stage('mvn config') {
+            RT_REPO_MVN="krishnam-mvn"
+            sh """ #!/bin/bash  
+                export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+                jf mvnc --server-id-resolve ${JFROG_NAME} --server-id-deploy ${JFROG_NAME} --repo-resolve-releases ${RT_REPO_MVN}-virtual --repo-resolve-snapshots ${RT_REPO_MVN}-virtual --repo-deploy-releases ${RT_REPO_MVN}-local --repo-deploy-snapshots ${RT_REPO_MVN}-dev-local
+            """
+        } // stage: mvnc
+        stage('env vars') {
+            sh """ #!/bin/bash 
+                export PACKAGE_CATEGORY="${PACKAGE_CATEGORY}"
+            """
+        } // stage: env vars
+        stage('build') {
+            sh """ #!/bin/bash
+                export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                jf mvn clean install -DskipTests=true --build-name=${projectName} --build-number=${env.BUILD_ID} --detailed-summary=true 
+            """
+        } // stage: build
+        stage('docker:config') {
+            RT_REPO_DOCKER="krishnam-docker"
+            withCredentials([usernamePassword(credentialsId: 'JFROG_ARTIFACTORY_CLI', passwordVariable: 'JFROG_RT_PWD', usernameVariable: 'JFROG_RT_USER')]) {
+                sh """ #!/bin/bash
+                    export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                    docker login ${JF_RT_HOST} -u ${JFROG_RT_USER} -p ${JFROG_RT_PWD}
+                """
+            } // withCredentials
+        } // stage: docker:config
+        stage('docker:image') {
+             sh """ #!/bin/bash
+                export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                docker image build -f Dockerfile-cli --platform linux/amd64,linux/arm64 -t ${JF_RT_HOST}/${RT_REPO_DOCKER}-virtual/${projectName}:${env.BUILD_ID} --output=type=image .
+             """
+        } // stage: docker:image
+        stage('docker:inspect') {
+             sh """ #!/bin/bash
+                export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                docker inspect ${JF_RT_HOST}/${RT_REPO_DOCKER}-virtual/${projectName}:${env.BUILD_ID} --format='{{.Id}}'
+             """
+        } // stage: docker:inspect
+        stage('docker:push') {
+             sh """ #!/bin/bash
+                export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                jf docker push ${JF_RT_HOST}/${RT_REPO_DOCKER}-virtual/${projectName}:${env.BUILD_ID} --build-name=${projectName} --build-number=${env.BUILD_ID} --detailed-summary=true
+             """
+        } // stage: docker:push
+        stage('docker:scan') {
+             sh """ #!/bin/bash
+                export JFROG_CLI_LOG_LEVEL='${JF_CLI_LOG_LEVEL}'
+
+                jf docker scan ${JF_RT_HOST}/${RT_REPO_DOCKER}-virtual/${projectName}:${env.BUILD_ID} 
+             """
+        } // stage: docker:scan        
+    } // stage: package
+} // node
